@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAccount, useBalance, useWriteContract, useConfig } from 'wagmi';
-import { waitForTransactionReceipt } from 'wagmi/actions';
+import { waitForTransactionReceipt, readContract } from 'wagmi/actions';
+import { parseEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import BridgeTabs from './BridgeTabs';
 import { ArrowUpDownIcon, ChevronDownIcon, SettingsIcon, InfoIcon } from './Icons';
@@ -27,7 +28,14 @@ const Bridge = () => {
 
     const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_BASE_A! as `0x${string}`;
     const bridgeAddress = process.env.NEXT_PUBLIC_BRIDGE_BASE_A! as `0x${string}`;
-    const amount = BigInt((Number(fromAmount) * 1e18).toString());
+    
+    let amount: bigint;
+    try {
+      amount = parseEther(fromAmount as `${number}`);
+    } catch (error) {
+      alert("Invalid amount entered. Please enter a valid number.");
+      return;
+    }
 
     const erc20Abi = [
       {
@@ -38,6 +46,17 @@ const Bridge = () => {
         "name": "approve",
         "outputs": [ { "name": "", "type": "bool" } ],
         "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+            { "name": "owner", "type": "address" },
+            { "name": "spender", "type": "address" }
+        ],
+        "name": "allowance",
+        "outputs": [ { "name": "", "type": "uint256" } ],
+        "stateMutability": "view",
         "type": "function"
       }
     ];
@@ -55,9 +74,36 @@ const Bridge = () => {
 
       alert(`Approval transaction sent: ${approveHash}. Waiting for confirmation...`);
       await waitForTransactionReceipt(config, { hash: approveHash, chainId: BASE_SEPOLIA_CHAIN_ID });
-      alert('Approval confirmed! Now locking the tokens...');
-      
+      alert('Approval confirmed! Verifying allowance on-chain before locking...');
+
+      // Poll to verify allowance
+      const checkAllowance = async () => {
+        for (let i = 0; i < 15; i++) { // Poll for ~30 seconds
+          try {
+            const allowance = await readContract(config, {
+              address: tokenAddress,
+              abi: erc20Abi,
+              functionName: 'allowance',
+              args: [address!, bridgeAddress],
+              chainId: BASE_SEPOLIA_CHAIN_ID,
+            }) as bigint;
+
+            if (allowance >= amount) {
+              console.log(`Allowance verified: ${allowance}`);
+              return;
+            }
+            console.log(`Polling for allowance... Current: ${allowance}, Needed: ${amount}`);
+          } catch (e) {
+            console.error("Polling error:", e);
+          }
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        }
+        throw new Error("Allowance not confirmed on-chain in time.");
+      };
+      await checkAllowance();
+
       // 2. Lock tokens on the source chain (Base Sepolia)
+      alert("Allowance verified. Please approve the lock transaction in your wallet.");
       const lockHash = await writeContractAsync({
         address: bridgeAddress,
         abi: BridgeBaseAbi,
@@ -122,10 +168,10 @@ const Bridge = () => {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center p-4 py-20">
+    <div className="flex flex-col justify-center p-4 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}  
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="relative w-full max-w-lg"
       >
@@ -170,7 +216,7 @@ const Bridge = () => {
                     setFromAmount(valid);
                   }}
                   placeholder="0.0"
-                  className="bg-transparent text-3xl font-bold outline-none border-2 border-white/10 rounded-lg px-2 w-full text-white placeholder-gray-500"
+                  className="bg-transparent text-3xl font-bold outline-none w-full text-white placeholder-gray-500"
                 />
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -224,16 +270,16 @@ const Bridge = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleBridging}
-              disabled={!fromAmount || !data || BigInt(Math.floor(parseFloat(fromAmount) * 1000000)) * BigInt(10 ** 12) > data.value}
+              disabled={!fromAmount || !data || parseEther(fromAmount as `${number}`,'wei') > data.value}
               className={`relative z-10 w-full py-4 rounded-2xl font-bold text-lg ${
-                !fromAmount || !data || BigInt(Math.floor(parseFloat(fromAmount) * 1000000)) * BigInt(10 ** 12) > data.value
+                !fromAmount || !data || parseEther(fromAmount as `${number}`,'wei') > data.value
                   ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed border border-gray-600/30'
                   : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl'
               }`}
             >
               {!fromAmount
                 ? "Enter an amount"
-                : data && BigInt(Math.floor(parseFloat(fromAmount) * 1000000)) * BigInt(10 ** 12) <= data.value
+                : data && parseEther(fromAmount as `${number}`,'wei') <= data.value
                 ? "Bridge Tokens"
                 : "Insufficient balance"}
             </motion.button>
