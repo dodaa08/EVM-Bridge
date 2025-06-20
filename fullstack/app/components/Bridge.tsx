@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAccount, useBalance, useWriteContract } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit'; 
+import { useAccount, useBalance, useWriteContract, useConfig } from 'wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import BridgeTabs from './BridgeTabs';
 import { ArrowUpDownIcon, ChevronDownIcon, SettingsIcon, InfoIcon } from './Icons';
 import BridgeBaseAbi from '../contracts/BridgeBase.json';
@@ -19,33 +20,63 @@ const Bridge = () => {
   const toNetwork = 'ethereum';
   const [isClient, setIsClient] = useState(false);
   const { writeContractAsync } = useWriteContract();
+  const config = useConfig();
 
   const handleBridging = async () => {
     if (!fromAmount || !address) return;
 
     const tokenAddress = process.env.NEXT_PUBLIC_TOKEN_BASE_A! as `0x${string}`;
     const bridgeAddress = process.env.NEXT_PUBLIC_BRIDGE_BASE_A! as `0x${string}`;
+    const amount = BigInt((Number(fromAmount) * 1e18).toString());
+
+    const erc20Abi = [
+      {
+        "inputs": [
+          { "name": "spender", "type": "address" },
+          { "name": "amount", "type": "uint256" }
+        ],
+        "name": "approve",
+        "outputs": [ { "name": "", "type": "bool" } ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
 
     try {
-      // 1. Lock tokens on the source chain (Base Sepolia) from the frontend
-      alert("Please approve the lock transaction in your wallet.");
+      // 1. Approve the bridge contract to spend tokens
+      alert("Please approve the token spending in your wallet.");
+      const approveHash = await writeContractAsync({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [bridgeAddress, amount],
+        chainId: BASE_SEPOLIA_CHAIN_ID,
+      });
+
+      alert(`Approval transaction sent: ${approveHash}. Waiting for confirmation...`);
+      await waitForTransactionReceipt(config, { hash: approveHash, chainId: BASE_SEPOLIA_CHAIN_ID });
+      alert('Approval confirmed! Now locking the tokens...');
+      
+      // 2. Lock tokens on the source chain (Base Sepolia)
       const lockHash = await writeContractAsync({
         address: bridgeAddress,
         abi: BridgeBaseAbi,
         functionName: 'lock',
-        args: [tokenAddress, BigInt((Number(fromAmount) * 1e18).toString())],
+        args: [tokenAddress, amount],
         chainId: BASE_SEPOLIA_CHAIN_ID,
       });
 
-      alert(`Lock transaction sent: ${lockHash}\nNow minting on the destination chain...`);
+      alert(`Lock transaction sent: ${lockHash}. Waiting for confirmation...`);
+      await waitForTransactionReceipt(config, { hash: lockHash, chainId: BASE_SEPOLIA_CHAIN_ID });
+      alert('Lock confirmed! Now minting on the destination chain...');
 
-      // 2. Call the backend to mint tokens on the destination chain (ETH Sepolia)
+      // 3. Call the backend to mint tokens on the destination chain (ETH Sepolia)
       const mintResponse = await fetch("/api/bridge/mint", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user: address,
-          amount: (Number(fromAmount) * 1e18).toString(),
+          amount: amount.toString(),
         })
       });
 
