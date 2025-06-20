@@ -6,6 +6,7 @@ import { useAccount, useBalance, useWriteContract, useConfig } from 'wagmi';
 import { waitForTransactionReceipt, readContract } from 'wagmi/actions';
 import { parseEther } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import toast from 'react-hot-toast';
 import BridgeTabs from './BridgeTabs';
 import { ArrowUpDownIcon, ChevronDownIcon, SettingsIcon, InfoIcon } from './Icons';
 import BridgeBaseAbi from '../contracts/BridgeBase.json';
@@ -33,7 +34,7 @@ const Bridge = () => {
     try {
       amount = parseEther(fromAmount as `${number}`);
     } catch (error) {
-      alert("Invalid amount entered. Please enter a valid number.");
+      toast.error("Invalid amount entered. Please enter a valid number.");
       return;
     }
 
@@ -63,7 +64,7 @@ const Bridge = () => {
 
     try {
       // 1. Approve the bridge contract to spend tokens
-      alert("Please approve the token spending in your wallet.");
+      toast.loading("Please approve the token spending in your wallet...", { id: "approve" });
       const approveHash = await writeContractAsync({
         address: tokenAddress,
         abi: erc20Abi,
@@ -72,9 +73,9 @@ const Bridge = () => {
         chainId: BASE_SEPOLIA_CHAIN_ID,
       });
 
-      alert(`Approval transaction sent: ${approveHash}. Waiting for confirmation...`);
+      toast.loading(`Approval transaction sent! Waiting for confirmation...`, { id: "approve-confirm" });
       await waitForTransactionReceipt(config, { hash: approveHash, chainId: BASE_SEPOLIA_CHAIN_ID });
-      alert('Approval confirmed! Verifying allowance on-chain before locking...');
+      toast.success("Approval confirmed! Verifying allowance...", { id: "approve-confirm" });
 
       // Poll to verify allowance
       const checkAllowance = async () => {
@@ -103,7 +104,7 @@ const Bridge = () => {
       await checkAllowance();
 
       // 2. Lock tokens on the source chain (Base Sepolia)
-      alert("Allowance verified. Please approve the lock transaction in your wallet.");
+      toast.loading("Allowance verified! Please approve the lock transaction...", { id: "lock" });
       const lockHash = await writeContractAsync({
         address: bridgeAddress,
         abi: BridgeBaseAbi,
@@ -112,11 +113,12 @@ const Bridge = () => {
         chainId: BASE_SEPOLIA_CHAIN_ID,
       });
 
-      alert(`Lock transaction sent: ${lockHash}. Waiting for confirmation...`);
+      toast.loading(`Lock transaction sent! Waiting for confirmation...`, { id: "lock-confirm" });
       await waitForTransactionReceipt(config, { hash: lockHash, chainId: BASE_SEPOLIA_CHAIN_ID });
-      alert('Lock confirmed! Now minting on the destination chain...');
+      toast.success("Lock confirmed! Minting on destination chain...", { id: "lock-confirm" });
 
       // 3. Call the backend to mint tokens on the destination chain (ETH Sepolia)
+      toast.loading("Minting tokens on Ethereum Sepolia...", { id: "mint" });
       const mintResponse = await fetch("/api/bridge/mint", {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
@@ -132,11 +134,28 @@ const Bridge = () => {
       }
 
       const mintData = await mintResponse.json();
+      toast.dismiss("mint");
 
-      alert(`Bridge successful!\n\nLock Tx: https://sepolia.basescan.org/tx/${lockHash}\nMint Tx: https://sepolia.etherscan.io/tx/${mintData.hash}`);
+      toast.success(
+        <div>
+          <div className="font-bold mb-2">🎉 Bridge Successful!</div>
+          <div className="text-sm">
+            <div>Lock Tx: <a href={`https://sepolia.basescan.org/tx/${lockHash}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">View on BaseScan</a></div>
+            <div>Mint Tx: <a href={`https://sepolia.etherscan.io/tx/${mintData.hash}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">View on Etherscan</a></div>
+          </div>
+        </div>,
+        { duration: 8000 }
+      );
     } catch (error) {
       console.error('Bridge error:', error);
-      alert(`Error during bridge operation: ${error instanceof Error ? error.message : String(error)}`);
+      toast.dismiss(); // Dismiss all active loading toasts
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('User rejected the request')) {
+        toast.error('Transaction rejected.');
+      } else {
+        toast.error(`Bridge failed: ${errorMessage}`);
+      }
     }
   };
 
@@ -216,7 +235,7 @@ const Bridge = () => {
                     setFromAmount(valid);
                   }}
                   placeholder="0.0"
-                  className="bg-transparent text-3xl font-bold outline-none w-full text-white placeholder-gray-500"
+                  className="bg-transparent text-3xl font-bold outline-none border-2 border-white/10 px-2 rounded-lg w-full text-white placeholder-gray-500"
                 />
                 <motion.button
                   whileHover={{ scale: 1.05 }}
