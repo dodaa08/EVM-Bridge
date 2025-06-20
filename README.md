@@ -29,8 +29,8 @@
 | Contract            | Description                                                      |
 |--------------------|------------------------------------------------------------------|
 | `Token.sol`        | ERC20 token with mint/burn, owned by deployer                     |
-| `BridgeBase.sol`   | Base bridge for locking/unlocking tokens, owner-only unlock       |
-| `BridgePolygon.sol`| Polygon bridge, owner can mint/burn tokens on Polygon             |
+| `BridgeEth.sol`   | Base bridge for locking/unlocking tokens, owner-only unlock       |
+| `BridgeBase.sol`| Polygon bridge, owner can mint/burn tokens on Polygon             |
 
 ---
 
@@ -39,8 +39,8 @@
 ```text
 contracts/
   ├── Token.sol
-  ├── BridgeBase.sol
-  └── BridgePolygon.sol
+  ├── BridgeEth.sol
+  └── BridgeBase.sol
 ```
 
 ---
@@ -65,7 +65,7 @@ contracts/
 ## Usage
 
 - Deploy `Token.sol` to your network.
-- Deploy `BridgeBase.sol` or `BridgePolygon.sol`, passing the token address.
+- Deploy `BridgeEth.sol` or `BridgeBase.sol`, passing the token address.
 - Use bridge contracts to lock, mint, burn, or unlock tokens as needed.
 
 ---
