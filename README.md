@@ -1,53 +1,101 @@
+<!-- Banner/Logo suggestion -->
+<p align="center">
+  <img src="https://placehold.co/600x120/222/fff?text=EVM+Bridge" alt="EVM Bridge Logo" width="60%"/>
+</p>
+
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build Status"></a>
+  <a href="#"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="#"><img src="https://img.shields.io/badge/openzeppelin-4.9.6%2B-4B32C3" alt="OpenZeppelin"></a>
+</p>
+
 # EVM Bridge
 
-This project implements a simple cross-chain token bridge using Solidity smart contracts. It allows users to lock tokens on one chain and mint or unlock equivalent tokens on another chain, facilitating asset transfers between EVM-compatible blockchains.
+> **A simple, creative cross-chain token bridge for EVM-compatible blockchains!**
+
+---
+
+## Features
+
+- **ERC20 token** with mint & burn
+- **Owner-only** minting & unlocking
+- **Event logging** for all bridge actions
+- **Cross-chain** asset transfer support
+
+---
 
 ## Contracts
 
-- **Token.sol**: An ERC20 token contract with minting and burning capabilities, owned by the deployer.
-- **BridgeBase.sol**: A base bridge contract for locking and unlocking tokens, with owner-only unlock functionality.
-- **BridgePolygon.sol**: A bridge contract for the Polygon network, allowing the owner to mint and burn tokens on Polygon.
+| Contract            | Description                                                      |
+|--------------------|------------------------------------------------------------------|
+| `Token.sol`        | ERC20 token with mint/burn, owned by deployer                     |
+| `BridgeBase.sol`   | Base bridge for locking/unlocking tokens, owner-only unlock       |
+| `BridgePolygon.sol`| Polygon bridge, owner can mint/burn tokens on Polygon             |
 
-## Features
-- ERC20 token with mint and burn functions
-- Owner-only minting and unlocking
-- Event logging for token mint, burn, and lock actions
-
-## Setup
-
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Compile contracts:**
-   ```bash
-   npx hardhat compile
-   ```
-
-3. **Run tests (if any):**
-   ```bash
-   npx hardhat test
-   ```
-
-## Usage
-
-- Deploy `Token.sol` to your desired network.
-- Deploy `BridgeBase.sol` or `BridgePolygon.sol`, passing the token contract address to the constructor.
-- Use the bridge contracts to lock, mint, burn, or unlock tokens as needed.
+---
 
 ## Directory Structure
-```
+
+```text
 contracts/
   ├── Token.sol
   ├── BridgeBase.sol
   └── BridgePolygon.sol
 ```
 
+---
+
+## Quick Start
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+2. **Compile contracts:**
+   ```bash
+   npx hardhat compile
+   ```
+3. **Run tests:**
+   ```bash
+   npx hardhat test
+   ```
+
+---
+
+## Usage
+
+- Deploy `Token.sol` to your network.
+- Deploy `BridgeBase.sol` or `BridgePolygon.sol`, passing the token address.
+- Use bridge contracts to lock, mint, burn, or unlock tokens as needed.
+
+---
+
+## How It Works
+
+```mermaid
+flowchart LR
+    User1[User on Chain A] -- Lock --> BridgeA[BridgeBase]
+    BridgeA -- Event --> OffChainRelayer
+    OffChainRelayer -- Mint Request --> BridgeB[BridgePolygon]
+    BridgeB -- Mint --> User2[User on Chain B]
+```
+
+---
+
 ## Requirements
+
 - Node.js
 - Hardhat
-- OpenZeppelin Contracts (v4.9.6 or later)
+- OpenZeppelin Contracts (v4.9.6+)
 
-## License
-MIT
+---
+
+## ⚖️ License
+
+[MIT](./LICENSE)
+
+---
+
+<p align="center">
+  <b>Made with ❤️ for the EVM ecosystem</b>
+</p>
