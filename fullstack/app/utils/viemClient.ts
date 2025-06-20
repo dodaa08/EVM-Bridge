@@ -22,26 +22,26 @@ export const baseSepolia = {
 
 export { sepolia };
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`;
+const PRIVATE_KEY = process.env.NEXT_PUBLIC_PRIVATE_KEY as `0x${string}`;
 
 export const basePublicClient = createPublicClient({
   chain: baseSepolia,
-  transport: http(process.env.BASE_RPC),
+  transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
 });
 
 export const ethPublicClient = createPublicClient({
   chain: sepolia,
-  transport: http(process.env.ETH_RPC),
+  transport: http(process.env.NEXT_PUBLIC_ETH_RPC),
 });
 
 export const baseWalletClient = createWalletClient({
   chain: baseSepolia,
-  transport: http(process.env.BASE_RPC),
+  transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
   account: PRIVATE_KEY,
 });
 
 export const ethWalletClient = createWalletClient({
   chain: sepolia,
-  transport: http(process.env.ETH_RPC),
+  transport: http(process.env.NEXT_PUBLIC_ETH_RPC),
   account: PRIVATE_KEY,
 });

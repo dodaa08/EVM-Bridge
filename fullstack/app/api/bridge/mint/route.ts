@@ -1,9 +1,10 @@
 import { ethWalletClient } from '../../../utils/viemClient';
-import { BridgeEthAbi } from '../../../contracts/BridgeEth';
+import  BridgeEthAbi  from '../../../contracts/BridgeEth.json';
 import { NextResponse } from 'next/server';
 import { sepolia } from 'viem/chains';
 
-const BRIDGE_ETH_ADDRESS = process.env.BridgeEthCA as `0x${string}`;
+const BRIDGE_ETH_ADDRESS = process.env.NEXT_PUBLIC_BRIDGE_ETH_A as `0x${string}`;
+
 
 export async function POST(req: Request) {
   if (req.method !== 'POST') return NextResponse.json({ error: 'Method not allowed' });
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
       abi: BridgeEthAbi,
       functionName: 'mintTokens',
       args: [user, BigInt(amount)],
-      account: process.env.OWNER_ADDRESS as `0x${string}`,
+      account: process.env.NEXT_PUBLIC_OWNER_ADDRESS as `0x${string}`,
       chain: sepolia,
     });
 
@@ -26,3 +27,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error' });
   }
 }
+
+

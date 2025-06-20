@@ -1,61 +1,30 @@
 'use client';
 
-import { WagmiConfig, createConfig, configureChains } from 'wagmi'
-import { sepolia } from 'wagmi/chains'
-import { publicProvider } from 'wagmi/providers/public'
-import { alchemyProvider } from 'wagmi/providers/alchemy'
-import { RainbowKitProvider, getDefaultWallets, connectorsForWallets } from '@rainbow-me/rainbowkit'
-import { 
-  metaMaskWallet, 
-  walletConnectWallet, 
-  coinbaseWallet, 
-  phantomWallet,
-  trustWallet,
-  rainbowWallet,
-  argentWallet,
-  ledgerWallet
-} from '@rainbow-me/rainbowkit/wallets'
-import '@rainbow-me/rainbowkit/styles.css'
-import { baseSepolia } from '../utils/viemClient'
+import { WagmiProvider } from 'wagmi';
+import { sepolia, baseSepolia } from 'wagmi/chains';
+import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
+import '@rainbow-me/rainbowkit/styles.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const { chains, publicClient } = configureChains(
-  [sepolia, baseSepolia],
-  [
-    alchemyProvider({ apiKey: process.env.NEXT_PUBLIC_ALCHEMY_ID || 'demo' }),
-    publicProvider()
-  ]
-)
+const projectId = 'eea4c8fc69d394908a9e6b1f19b5b255';
 
-const projectId = 'eea4c8fc69d394908a9e6b1f19b5b255'
+const config = getDefaultConfig({
+  appName: 'Bridge App',
+  projectId,
+  chains: [sepolia, baseSepolia],
+  ssr: true,
+});
 
-const connectors = connectorsForWallets([
-  {
-    groupName: 'Popular',
-    wallets: [
-      metaMaskWallet({ chains, projectId }),
-      walletConnectWallet({ chains, projectId }),
-      coinbaseWallet({ appName: 'Bridge App', chains }),
-      phantomWallet({ chains }),
-      trustWallet({ chains, projectId }),
-      rainbowWallet({ chains, projectId }),
-      argentWallet({ chains, projectId }),
-      ledgerWallet({ chains, projectId })
-    ]
-  }
-])
-
-const config = createConfig({
-  autoConnect: true,
-  publicClient,
-  connectors
-})
+const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiConfig config={config}>
-      <RainbowKitProvider chains={chains}>
-        {children}
-      </RainbowKitProvider>
-    </WagmiConfig>
-  )
+    <QueryClientProvider client={queryClient}>
+      <WagmiProvider config={config}>
+        <RainbowKitProvider>
+          {children}
+        </RainbowKitProvider>
+      </WagmiProvider>
+    </QueryClientProvider>
+  );
 } 
