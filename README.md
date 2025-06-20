@@ -74,9 +74,9 @@ contracts/
 
 ```mermaid
 flowchart LR
-    User1[User on Chain A] -- Lock --> BridgeA[BridgeBase]
+    User1[User on Chain A] -- Lock --> BridgeA[BridgeEth]
     BridgeA -- Event --> OffChainRelayer
-    OffChainRelayer -- Mint Request --> BridgeB[BridgePolygon]
+    OffChainRelayer -- Mint Request --> BridgeB[BridgeBase]
     BridgeB -- Mint --> User2[User on Chain B]
 ```
 
